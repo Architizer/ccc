@@ -9,7 +9,7 @@ if [ ! -d "collections" ]; then
 fi
 
 if [ -z "$INDEX" ]; then
-    INDEX="CC-MAIN-2015-18"
+    INDEX="CC-MAIN-2016-40"
 fi
 
 if [ ! -d "collections/$INDEX" ]; then
