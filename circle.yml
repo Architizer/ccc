@@ -1,0 +1,34 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  pre:
+    - >
+      AWS_PUBLIC_DS="https://s3.amazonaws.com";
+      CC="commoncrawl/cc-index/collections";
+      INDEX="CC-MAIN-2016-40";
+      if [ ! -d "collections" ]; then
+        mkdir collections;
+      fi;
+      if [ ! -d "collections/$INDEX" ]; then
+        mkdir "collections/$INDEX";
+        mkdir "collections/$INDEX/indexes";
+      fi;
+      wget $AWS_PUBLIC_DS/$CC/$INDEX/metadata.yaml -O collections/$INDEX/metadata.yaml;
+      wget $AWS_PUBLIC_DS/$CC/$INDEX/indexes/cluster.idx -O collections/$INDEX/indexes/cluster.idx;
+      docker build -t architizer/ccc .
+
+test:
+  override:
+    - echo "no tests here"
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - aws ecr get-login --region us-east-1 > login.sh
+      - bash login.sh
+      - docker tag architizer/ccc:latest 153413628755.dkr.ecr.us-east-1.amazonaws.com/architizer/ccc:latest
+      - docker push 153413628755.dkr.ecr.us-east-1.amazonaws.com/architizer/ccc:latest
+
