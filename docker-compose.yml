@@ -1,0 +1,34 @@
+version: '2'
+
+services:
+  api:
+    build: ./
+    command: gunicorn -b 0.0.0.0 server:api
+    volumes:
+      - "./:/code/"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    links:
+      - redis
+
+  worker:
+    build: ./
+    command: python worker.py
+    volumes:
+      - "./:/code/"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SOLR_URL=http://ludwig-dev-solr2-1409832446.us-east-1.elb.amazonaws.com
+    depends_on:
+      - redis
+    links:
+      - redis
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"

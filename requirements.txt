@@ -2,10 +2,11 @@ argh==0.26.2
 beautifulsoup4==4.5.1
 brotlipy==0.6.0
 bs4==0.0.1
-ccc==0.1
 cffi==1.9.1
 chardet==2.3.0
 enum34==1.1.6
+falcon==1.1.0
+gunicorn==19.6.0
 idna==2.1
 Jinja2==2.8
 MarkupSafe==0.23

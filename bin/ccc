@@ -15,9 +15,6 @@ parser.print_help()
 
 args = parser.parse_args()
 
-index = os.environ.get('INDEX', 'CC-MAIN-2016-40')
-solr_url = os.environ.get('SOLR_URL', None)
-
 if __name__ == "__main__":
     if args.command == 'install':
         print 'hi'
@@ -36,23 +33,5 @@ if __name__ == "__main__":
                     f.write(r.text)
 
     elif args.command == 'index-domain':
-        if not solr_url:
-            ccc.log("set SOLR_ENV environment variable export SOLR_ENV=localhost:8389")
-            sys.exit(1)
         for domain in args.extras:
-            for record in ccc.lookup(index, domain):
-                record_json = json.loads(''.join(record.split(' ')[2:]))
-                data = ccc.get(record_json)
-                document = ccc.format(data)
-                ccc.log(document)
-                solr_doc = {'add': { 'doc': document }}
-                response =requests.post('{}/solr/test/update?wt=json'.format(solr_url),
-                                        headers={"Content-Type":"application/json"},
-                                        data=json.dumps(solr_doc))
-                ccc.log(response)
-            
-            response =requests.post('{}/solr/test/update?wt=json'.format(solr_url),
-                                    headers={"Content-Type":"application/json"},
-                                    data=json.dumps({'add': { 'doc': document }, 'commit': {} }))
-            ccc.log(response)
-            ccc.log("done")
+            ccc.index_in_solr(domain)
