@@ -7,5 +7,10 @@ class CommoncrawlResource:
         ccc.add_to_pending(domain)
         resp.body = json.dumps({})
  
+class HealthCheck():
+    def on_get(self, req, resp):
+        resp.body = json.dumps({})
+
 api = falcon.API()
 api.add_route('/domain/{domain}', CommoncrawlResource())
+api.add_route('/hc', HealthCheck())
