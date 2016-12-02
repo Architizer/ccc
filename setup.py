@@ -9,5 +9,5 @@ setup(name='ccc',
       include_package_data=True,
       license='MIT',
       packages=['ccc'],
-      scripts=['bin/ccc-lookup'],
+      scripts=['bin/ccc'],
       zip_safe=False)
