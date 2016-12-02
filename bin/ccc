@@ -10,7 +10,7 @@ import sys
 
 parser = argparse.ArgumentParser(prog='ccc-lookup')
 parser.add_argument('command', help='ccc help')
-parser.add_argument('domains', nargs='+', help='ccc help')
+parser.add_argument('extras', nargs='+', help='ccc help')
 parser.print_help()
 
 args = parser.parse_args()
@@ -19,11 +19,27 @@ index = os.environ.get('INDEX', 'CC-MAIN-2016-40')
 solr_url = os.environ.get('SOLR_URL', None)
 
 if __name__ == "__main__":
-    if args.command == 'index-domain':
+    if args.command == 'install':
+        print 'hi'
+        for collection in args.extras:
+            s3_host='https://s3.amazonaws.com'
+            collection_path='commoncrawl/cc-index/collections'
+            local_dir='collections'
+            for filename in ['metadata.yaml', 'indexes/cluster.idx']:
+                print '{}/{}/{}'.format(s3_host, collection_path, filename)
+                r = requests.get('{}/{}/{}/{}'.format(s3_host, collection_path, collection, filename))
+                print r
+                filenamepath = '{}/{}/{}'.format(local_dir, collection, filename)
+                if not os.path.exists(os.path.dirname(filenamepath)):
+                    os.makedirs(os.path.dirname(filenamepath))
+                with open(filenamepath, 'w') as f:
+                    f.write(r.text)
+
+    elif args.command == 'index-domain':
         if not solr_url:
             ccc.log("set SOLR_ENV environment variable export SOLR_ENV=localhost:8389")
             sys.exit(1)
-        for domain in args.domains:
+        for domain in args.extras:
             for record in ccc.lookup(index, domain):
                 record_json = json.loads(''.join(record.split(' ')[2:]))
                 data = ccc.get(record_json)
