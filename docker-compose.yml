@@ -7,7 +7,7 @@ services:
     volumes:
       - "./:/code/"
     environment:
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
     ports:
       - "8000:8000"
     depends_on:
@@ -21,7 +21,7 @@ services:
     volumes:
       - "./:/code/"
     environment:
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
       - SOLR_URL=http://ludwig-dev-solr2-1409832446.us-east-1.elb.amazonaws.com
     depends_on:
       - redis

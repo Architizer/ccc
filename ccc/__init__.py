@@ -19,6 +19,8 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler) 
 logger.setLevel(logging.INFO)
+redis_client = redis.StrictRedis(host=os.environ.get('REDIS_HOST', '127.0.0.1'),
+                                 port=6379, db=0)
 
 def log(msg):
     logger.debug(msg)
@@ -113,14 +115,12 @@ def index_in_solr(domain):
     log("done")
 
 def add_to_pending(domain):
-    r = redis.StrictRedis(host='redis', port=6379, db=0)
-    return r.rpush('domains', domain)
+    return redis_client.rpush('domains', domain)
 
 def dequeued():
-    r = redis.StrictRedis(host='redis', port=6379, db=0)
     while True:
         time.sleep(5)
-        domain = r.lpop('domains')
+        domain = redis_client.lpop('domains')
         log_info('dequeing {}'.format(domain))
         if domain:
             index_in_solr(domain)
