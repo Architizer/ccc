@@ -54,7 +54,7 @@ def get(page):
     f = gzip.GzipFile(fileobj=raw_data)
     return f.read()
 
-def format(record):
+def format(domain, record):
     warc, header, response = record.strip().split('\r\n\r\n', 2)
     soup = BeautifulSoup(response, "html.parser")
 
@@ -84,6 +84,7 @@ def format(record):
             document["meta:"+str(prop)] = content
     document.update(warc_dict)
     document.update(header_dict)
+    document['domain'] = domain
     document['description'] = document.get('meta:description', '')
     document['text'] = ' '.join(soup.get_text().split())
     document['url'] = warc_dict['WARC-Target-URI']
@@ -99,7 +100,7 @@ def index_in_solr(domain):
     for record in lookup(index, domain):
         record_json = json.loads(''.join(record.split(' ')[2:]))
         data = get(record_json)
-        document = format(data)
+        document = format(domain, data)
         log(document)
         solr_doc = {'add': { 'doc': document }}
         response =requests.post('{}/solr/test/update?wt=json'.format(solr_url),
