@@ -120,7 +120,6 @@ def add_to_pending(domain):
 
 def dequeued():
     while True:
-        time.sleep(5)
         domain = redis_client.lpop('domains')
         log_info('dequeing {}'.format(domain))
         if domain:
