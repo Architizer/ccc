@@ -91,21 +91,21 @@ def format(domain, record):
     document['id'] = md5.new(document['text'].encode('ascii','ignore')).hexdigest()
     return document
 
-def _post_to_solr(batch):
+def _post_to_solr(batch, commit=False):
     solr_url = os.environ.get('SOLR_URL', None)
     if not solr_url:
         log("set SOLR_ENV environment variable export SOLR_ENV=localhost:8389")
         sys.exit(1)
-    response = requests.post('{}/solr/common-crawl/update?commit=true'.format(solr_url),
+    response = requests.post('{}/solr/commoncrawl/update?commit={}'.format(solr_url, str(commit).lower()),
                              headers={"Content-Type":"application/json"},
                              data=json.dumps(batch))
-    log(response)
+    log_info(response)
     return response.status_code
 
 
 def index_in_solr(domain):
     index = os.environ.get('INDEX', 'CC-MAIN-2016-40')
-    batch_size = 10
+    batch_size = 100
     batch = []
     for record in lookup(index, domain):
         record_json = json.loads(''.join(record.split(' ')[2:]))
@@ -116,10 +116,12 @@ def index_in_solr(domain):
         log_info('indexing: {}'.format(document['url']))
         if len(batch) == batch_size:
             status_code = _post_to_solr(batch)
+            log_info('submitting batch of {} documents'.format(len(batch)))
             if status_code == 200:
                 batch = []
-    # commit the rest
-    status_code = _post_to_solr(batch)
+    # submitting and committing the rest
+    status_code = _post_to_solr(batch, True)
+    log_info('submitting batch of {} documents and committing'.format(len(batch)))
     if status_code == 200:
         batch = []
     log("done")
@@ -130,6 +132,6 @@ def add_to_pending(domain):
 def dequeued():
     while True:
         domain = redis_client.lpop('domains')
-        log_info('dequeing {}'.format(domain))
         if domain:
+            log_info('dequeing {}'.format(domain))
             index_in_solr(domain)

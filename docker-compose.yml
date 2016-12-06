@@ -41,7 +41,7 @@ services:
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
-      - common-crawl
+      - commoncrawl
 
   redis:
     image: redis
