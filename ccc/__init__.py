@@ -91,28 +91,37 @@ def format(domain, record):
     document['id'] = md5.new(document['text'].encode('ascii','ignore')).hexdigest()
     return document
 
-def index_in_solr(domain):
-    index = os.environ.get('INDEX', 'CC-MAIN-2016-40')
+def _post_to_solr(batch):
     solr_url = os.environ.get('SOLR_URL', None)
     if not solr_url:
         log("set SOLR_ENV environment variable export SOLR_ENV=localhost:8389")
         sys.exit(1)
+    response = requests.post('{}/solr/common-crawl/update?commit=true'.format(solr_url),
+                             headers={"Content-Type":"application/json"},
+                             data=json.dumps(batch))
+    log(response)
+    return response.status_code
+
+
+def index_in_solr(domain):
+    index = os.environ.get('INDEX', 'CC-MAIN-2016-40')
+    batch_size = 10
+    batch = []
     for record in lookup(index, domain):
         record_json = json.loads(''.join(record.split(' ')[2:]))
         data = get(record_json)
         document = format(domain, data)
         log(document)
-        solr_doc = {'add': { 'doc': document }}
-        response =requests.post('{}/solr/test/update?wt=json'.format(solr_url),
-                                headers={"Content-Type":"application/json"},
-                                data=json.dumps(solr_doc))
-        log(response)
+        batch.append(document)
         log_info('indexing: {}'.format(document['url']))
-    
-    response =requests.post('{}/solr/test/update?wt=json'.format(solr_url),
-                            headers={"Content-Type":"application/json"},
-                            data=json.dumps({'add': { 'doc': {} }, 'commit': {} }))
-    log(response)
+        if len(batch) == batch_size:
+            status_code = _post_to_solr(batch)
+            if status_code == 200:
+                batch = []
+    # commit the rest
+    status_code = _post_to_solr(batch)
+    if status_code == 200:
+        batch = []
     log("done")
 
 def add_to_pending(domain):
