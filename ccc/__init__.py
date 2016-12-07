@@ -1,8 +1,8 @@
 import gzip
 import requests
-from cStringIO import StringIO
+from io import BytesIO
 from bs4 import BeautifulSoup
-import md5
+import hashlib
 import logging
 import os
 import sys
@@ -50,12 +50,12 @@ def get(page):
     prefix = 'https://s3.amazonaws.com/commoncrawl/'
     resp = requests.get(prefix + page['filename'], headers={'Range': 'bytes={}-{}'.format(offset, offset_end)})
 
-    raw_data = StringIO(resp.content)
+    raw_data = BytesIO(resp.content)
     f = gzip.GzipFile(fileobj=raw_data)
     return f.read()
 
 def format(domain, record):
-    warc, header, response = record.strip().split('\r\n\r\n', 2)
+    warc, header, response = record.decode('utf-8').strip().split('\r\n\r\n', 2)
     soup = BeautifulSoup(response, "html.parser")
 
     for script in soup(["script", "style"]):
@@ -88,7 +88,9 @@ def format(domain, record):
     document['description'] = document.get('meta:description', '')
     document['text'] = ' '.join(soup.get_text().split())
     document['url'] = warc_dict['WARC-Target-URI']
-    document['id'] = md5.new(document['text'].encode('ascii','ignore')).hexdigest()
+    md5 = hashlib.md5() 
+    md5.update(document['text'].encode('ascii','ignore'))
+    document['id'] = md5.hexdigest()
     return document
 
 def _post_to_solr(batch, commit=False):
@@ -127,6 +129,7 @@ def index_in_solr(domain):
     log("done")
 
 def add_to_pending(domain):
+    log_info('enqueing {}'.format(domain))
     return redis_client.rpush('domains', domain)
 
 def dequeued():
@@ -134,4 +137,4 @@ def dequeued():
         domain = redis_client.lpop('domains')
         if domain:
             log_info('dequeing {}'.format(domain))
-            index_in_solr(domain)
+            index_in_solr(domain.decode('utf-8'))
