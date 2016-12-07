@@ -109,7 +109,9 @@ def index_in_solr(domain):
     index = os.environ.get('INDEX', 'CC-MAIN-2016-40')
     batch_size = 100
     batch = []
+    counter = 0
     for record in lookup(index, domain):
+        counter += 1
         record_json = json.loads(''.join(record.split(' ')[2:]))
         data = get(record_json)
         document = format(domain, data)
@@ -117,7 +119,8 @@ def index_in_solr(domain):
         batch.append(document)
         log_info('indexing: {}'.format(document['url']))
         if len(batch) == batch_size:
-            status_code = _post_to_solr(batch)
+            # commit for every 500 records
+            status_code = _post_to_solr(batch, counter % 500 == 0)
             log_info('submitting batch of {} documents'.format(len(batch)))
             if status_code == 200:
                 batch = []
