@@ -146,5 +146,5 @@ def dequeued():
         messages = queue.receive_messages(WaitTimeSeconds=5)
         for message in messages:
             domain = message.body
-            index_in_solr(domain.decode('utf-8'))
+            index_in_solr(domain)
             message.delete()
