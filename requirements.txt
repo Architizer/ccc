@@ -1,5 +1,6 @@
 argh==0.26.2
 beautifulsoup4==4.5.1
+boto3==1.4.2
 brotlipy==0.6.0
 bs4==0.0.1
 cffi==1.9.1

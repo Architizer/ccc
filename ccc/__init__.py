@@ -1,3 +1,4 @@
+import boto3
 import gzip
 import requests
 from io import BytesIO
@@ -132,12 +133,18 @@ def index_in_solr(domain):
     log("done")
 
 def add_to_pending(domain):
+    sqs = boto3.resource('sqs')
     log_info('enqueing {}'.format(domain))
-    return redis_client.rpush('domains', domain)
+    queue = sqs.get_queue_by_name(QueueName='search-us-east-1-dev')
+    response = queue.send_message(MessageBody=domain)
+    return response.get('MessageId')
 
 def dequeued():
+    sqs = boto3.resource('sqs')
+    queue = sqs.get_queue_by_name(QueueName='search-us-east-1-dev')
     while True:
-        domain = redis_client.lpop('domains')
-        if domain:
-            log_info('dequeing {}'.format(domain))
+        messages = queue.receive_messages(WaitTimeSeconds=5)
+        for message in messages:
+            domain = message.body
             index_in_solr(domain.decode('utf-8'))
+            message.delete()
