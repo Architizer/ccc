@@ -3,18 +3,18 @@ version: '2'
 services:
   api:
     build: ./
-    command: gunicorn -b 0.0.0.0 server:api
+    command: gunicorn -b 0.0.0.0 server:API
     volumes:
       - "./:/code/"
     environment:
-      - REDIS_HOST=redis
+      - AWS_ACCESS_KEY_ID=<your key>
+      - AWS_SECRET_ACCESS_KEY=<your secret key>
+      - AWS_DEFAULT_REGION=us-east-1
     ports:
       - "8000:8000"
     depends_on:
-      - redis
       - solr
     links:
-      - redis
       - solr
 
   worker:
@@ -23,13 +23,13 @@ services:
     volumes:
       - "./:/code/"
     environment:
-      - REDIS_HOST=redis
       - SOLR_URL=http://solr:8983
+      - AWS_ACCESS_KEY_ID=<your key>
+      - AWS_SECRET_ACCESS_KEY=<your secret key>
+      - AWS_DEFAULT_REGION=us-east-1
     depends_on:
-      - redis
       - solr
     links:
-      - redis
       - solr
 
   solr:
@@ -42,8 +42,3 @@ services:
       - docker-entrypoint.sh
       - solr-precreate
       - commoncrawl
-
-  redis:
-    image: redis
-    ports:
-      - "6379:6379"
