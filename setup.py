@@ -10,4 +10,5 @@ setup(name='ccc',
       license='MIT',
       packages=['ccc'],
       scripts=['bin/ccc'],
+      test_suite='tests',
       zip_safe=False)
