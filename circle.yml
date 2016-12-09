@@ -21,7 +21,8 @@ dependencies:
 
 test:
   override:
-    - echo "no tests here"
+    - docker run -it architizer/ccc pylint ccc worker.py server.py
+    - docker run -it architizer/ccc python -m unittest tests/test_formatter.py
 
 deployment:
   production:
