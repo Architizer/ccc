@@ -47,14 +47,18 @@ def lookup(index, domain):
 
 def get(page):
     """ extracts page from s3 archive """
-    offset, length = int(page['offset']), int(page['length'])
-    offset_end = offset + length - 1
-    prefix = 'https://s3.amazonaws.com/commoncrawl/'
-    resp = requests.get(prefix + page['filename'],
-                        headers={'Range': 'bytes={}-{}'.format(offset, offset_end)})
-    raw_data = BytesIO(resp.content)
-    io_handle = TextIOWrapper(GzipFile(fileobj=raw_data), encoding='utf-8', errors='ignore')
-    return io_handle.read()
+    try:
+        offset, length = int(page['offset']), int(page['length'])
+        offset_end = offset + length - 1
+        prefix = 'https://s3.amazonaws.com/commoncrawl/'
+        resp = requests.get(prefix + page['filename'],
+                            headers={'Range': 'bytes={}-{}'.format(offset, offset_end)})
+        raw_data = BytesIO(resp.content)
+        io_handle = TextIOWrapper(GzipFile(fileobj=raw_data), encoding='utf-8', errors='ignore')
+        return io_handle.read()
+    except UnicodeDecodeError:
+        log('unicode error: {}'.format(page))
+        return None
 
 def _post_to_solr(batch, commit=False):
     """ posts document to solr """
