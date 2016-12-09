@@ -1,14 +1,28 @@
-from bs4 import BeautifulSoup
+"""
+A module that generates the document that
+is to be inserted into search collection.
+"""
+
 import hashlib
+from bs4 import BeautifulSoup
 
 
 class Formatter(object):
+    """
+    Module has to goals parse html and produce document
+    """
     def __init__(self, domain):
+        """
+        initializes instance with a domain
+        """
         self.domain = domain
         self.document = {}
         self.document['domain'] = domain
-        
+
     def parse_html(self, response):
+        """
+        This uses beautifulsoup to parse the html page
+        """
         soup = BeautifulSoup(response, "html.parser")
         if soup.title:
             self.document['title'] = soup.title.text
@@ -25,6 +39,9 @@ class Formatter(object):
         self.document['text'] = ' '.join(soup.get_text().split())
 
     def get_document(self, record):
+        """
+        This returns the processed document for the search collection
+        """
         warc, header, response = record.strip().split('\n\n', 2)
         self.parse_html(response)
         warc_dict = {}
@@ -40,7 +57,7 @@ class Formatter(object):
         self.document.update(header_dict)
         self.document.update(warc_dict)
         self.document['url'] = warc_dict['WARC-Target-URI']
-        md5 = hashlib.md5() 
-        md5.update(self.document['text'].encode('ascii','ignore'))
+        md5 = hashlib.md5()
+        md5.update(self.document['text'].encode('ascii', 'ignore'))
         self.document['id'] = md5.hexdigest()
         return self.document
