@@ -80,8 +80,8 @@ def index_in_solr(domain):
     batch_size = 20
     batch = []
     counter = 0
-    formatter = Formatter(domain)
     for record in lookup(index, domain):
+        formatter = Formatter(domain)
         counter += 1
         record_json = json.loads(''.join(record.split(' ')[2:]))
         data = get(record_json)
