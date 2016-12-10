@@ -1,37 +1,47 @@
 #!/usr/bin/env python
 
-import ccc
+"""
+Utility script to test and troubleshoot ccc
+"""
+
 import argparse
-import ConfigParser
-import json
-import requests
 import os
-import sys
+import requests
+from ccc import index_in_solr, lookup
 
-parser = argparse.ArgumentParser(prog='ccc-lookup')
-parser.add_argument('command', help='ccc help')
-parser.add_argument('extras', nargs='+', help='ccc help')
-parser.print_help()
+PARSER = argparse.ArgumentParser(prog='ccc')
+PARSER.add_argument('command', help="""
+  [install [index, ...], index-domain [example.com, ..], page-count [example.com, ...]
+""")
+PARSER.add_argument('extras', nargs='+', help='ccc help')
+PARSER.print_help()
 
-args = parser.parse_args()
 
 if __name__ == "__main__":
-    if args.command == 'install':
-        print 'hi'
-        for collection in args.extras:
-            s3_host='https://s3.amazonaws.com'
-            collection_path='commoncrawl/cc-index/collections'
-            local_dir='collections'
+    ARGS = PARSER.parse_args()
+    if ARGS.command == 'install':
+        for collection in ARGS.extras:
+            s3_host = 'https://s3.amazonaws.com'
+            collection_path = 'commoncrawl/cc-index/collections'
+            local_dir = 'collections'
             for filename in ['metadata.yaml', 'indexes/cluster.idx']:
-                print '{}/{}/{}'.format(s3_host, collection_path, filename)
-                r = requests.get('{}/{}/{}/{}'.format(s3_host, collection_path, collection, filename))
-                print r
+                print('{}/{}/{}'.format(s3_host, collection_path, filename))
+                r = requests.get('{}/{}/{}/{}'.format(s3_host,
+                                                      collection_path,
+                                                      collection,
+                                                      filename))
+                print(r)
                 filenamepath = '{}/{}/{}'.format(local_dir, collection, filename)
                 if not os.path.exists(os.path.dirname(filenamepath)):
                     os.makedirs(os.path.dirname(filenamepath))
                 with open(filenamepath, 'w') as f:
                     f.write(r.text)
 
-    elif args.command == 'index-domain':
-        for domain in args.extras:
-            ccc.index_in_solr(domain)
+    elif ARGS.command == 'index-domain':
+        for domain in ARGS.extras:
+            index_in_solr(domain)
+
+    elif ARGS.command == 'page-count':
+        INDEX = os.environ.get('INDEX', 'CC-MAIN-2016-40')
+        for domain in ARGS.extras:
+            print('{}, {}\r\n'.format(domain, len([page for page in lookup(INDEX, domain)])))
