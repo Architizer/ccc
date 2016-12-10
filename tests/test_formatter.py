@@ -11,6 +11,7 @@ class TestFormatter(unittest.TestCase):
             WARC-Target-URI: http://architizer.com/about
             WARC-Test: test warc value
             WARC-Record-ID: record-id
+            WARC-Payload-Digest: fingerprint
             \n\n
             HTTP/1.1 200 OK
             Content-Type: text/html
@@ -28,6 +29,7 @@ class TestFormatter(unittest.TestCase):
         self.bad_record = """
             WARC-Target-URI: http://architizer.com/about
             WARC-Record-ID: record-id
+            WARC-Payload-Digest: fingerprint
             \n\n
             Content-Type: text/html
             \n\n
