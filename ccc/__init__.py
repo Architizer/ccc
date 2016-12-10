@@ -70,7 +70,8 @@ def _post_to_solr(batch, commit=False):
     response = requests.post(solr_template.format(solr_url, str(commit).lower()),
                              headers={"Content-Type":"application/json"},
                              data=json.dumps(batch))
-    log_info(response)
+    log_info(response.status_code)
+    log_info(response.text)
     return response.status_code
 
 
