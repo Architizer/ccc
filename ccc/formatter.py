@@ -59,5 +59,5 @@ class Formatter(object):
         self.document['url'] = warc_dict['WARC-Target-URI']
         md5 = hashlib.md5()
         md5.update(self.document['text'].encode('ascii', 'ignore'))
-        self.document['id'] = md5.hexdigest()
+        self.document['id'] = warc_dict['WARC-Payload-Digest']
         return self.document
