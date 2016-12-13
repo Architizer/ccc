@@ -102,16 +102,16 @@ def index_in_solr(domain):
                     for url in batch_urls:
                         log_info("failed for: {}".format(url))
                     log_info("error message: {}".format(response.text))
-                    error_msg = { 'status': response.status_code,
-                                  'message': response.text,
-                                  'domain': domain,
-                                  'urls': batch_urls
+                    error_msg = {'status': response.status_code,
+                                 'message': response.text,
+                                 'domain': domain,
+                                 'urls': batch_urls
                                 }
                     enqueue_error(json.dumps(error_msg))
                 batch = []
 
     # submitting and committing the rest
-    repsponse = _post_to_solr(batch, True)
+    response = _post_to_solr(batch, True)
     log_info('submitting batch of {} documents and committing'.format(len(batch)))
     batch_urls = [doc['url'] for doc in batch]
     if response.status_code == 200:
@@ -121,10 +121,10 @@ def index_in_solr(domain):
         for url in batch_urls:
             log_info("failed for: {}".format(url))
         log_info("error message: {}".format(response.text))
-        error_msg = { 'status': response.status_code,
-                      'message': response.text,
-                      'domain': domain,
-                      'urls': batch_urls
+        error_msg = {'status': response.status_code,
+                     'message': response.text,
+                     'domain': domain,
+                     'urls': batch_urls
                     }
         enqueue_error(json.dumps(error_msg))
     batch = []
@@ -132,8 +132,9 @@ def index_in_solr(domain):
     log("done")
 
 def enqueue_error(error_msg):
+    """ enqueues error to process later """
     error_queue = SQS.get_queue_by_name(QueueName='search-ccc-errors-us-east-1-dev')
-    response = queue.send_message(MessageBody=error_msg)
+    response = error_queue.send_message(MessageBody=error_msg)
     return response.get('MessageId')
 
 def add_to_pending(domain):
