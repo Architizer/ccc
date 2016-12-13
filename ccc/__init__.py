@@ -20,6 +20,7 @@ HANDLER = logging.StreamHandler(sys.stdout)
 HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 LOGGER.addHandler(HANDLER)
 LOGGER.setLevel(logging.INFO)
+SQS = boto3.resource('sqs')
 
 def log(msg):
     """ log abstract for debug """
@@ -72,7 +73,7 @@ def _post_to_solr(batch, commit=False):
                              data=json.dumps(batch))
     log_info(response.status_code)
     log_info(response.text)
-    return response.status_code
+    return response
 
 
 def index_in_solr(domain):
@@ -91,29 +92,60 @@ def index_in_solr(domain):
             batch.append(document)
             log_info('indexing: {}'.format(document['url']))
             if len(batch) % batch_size == 0:
-                status_code = _post_to_solr(batch, counter % batch_size*5 == 0)
+                response = _post_to_solr(batch, counter % batch_size*5 == 0)
                 log_info('submitting batch of {} documents'.format(len(batch)))
-                if status_code == 200:
-                    batch = []
+                batch_urls = [doc['url'] for doc in batch]
+                if response.status_code == 200:
+                    for url in batch_urls:
+                        log_info("success for: {}".format(url))
+                else:
+                    for url in batch_urls:
+                        log_info("failed for: {}".format(url))
+                    log_info("error message: {}".format(response.text))
+                    error_msg = { 'status': response.status_code,
+                                  'message': response.text,
+                                  'domain': domain,
+                                  'urls': batch_urls
+                                }
+                    enqueue_error(json.dumps(error_msg))
+                batch = []
+
     # submitting and committing the rest
-    status_code = _post_to_solr(batch, True)
+    repsponse = _post_to_solr(batch, True)
     log_info('submitting batch of {} documents and committing'.format(len(batch)))
-    if status_code == 200:
-        batch = []
+    batch_urls = [doc['url'] for doc in batch]
+    if response.status_code == 200:
+        for url in batch_urls:
+            log_info("success for: {}".format(url))
+    else:
+        for url in batch_urls:
+            log_info("failed for: {}".format(url))
+        log_info("error message: {}".format(response.text))
+        error_msg = { 'status': response.status_code,
+                      'message': response.text,
+                      'domain': domain,
+                      'urls': batch_urls
+                    }
+        enqueue_error(json.dumps(error_msg))
+    batch = []
+
     log("done")
+
+def enqueue_error(error_msg):
+    error_queue = SQS.get_queue_by_name(QueueName='search-ccc-errors-us-east-1-dev')
+    response = queue.send_message(MessageBody=error_msg)
+    return response.get('MessageId')
 
 def add_to_pending(domain):
     """ enqueues job """
-    sqs = boto3.resource('sqs')
     log_info('enqueing {}'.format(domain))
-    queue = sqs.get_queue_by_name(QueueName='search-us-east-1-dev')
+    queue = SQS.get_queue_by_name(QueueName='search-us-east-1-dev')
     response = queue.send_message(MessageBody=domain)
     return response.get('MessageId')
 
 def dequeued():
     """ dequeues job """
-    sqs = boto3.resource('sqs')
-    queue = sqs.get_queue_by_name(QueueName='search-us-east-1-dev')
+    queue = SQS.get_queue_by_name(QueueName='search-us-east-1-dev')
     while True:
         messages = queue.receive_messages(WaitTimeSeconds=5)
         for message in messages:
