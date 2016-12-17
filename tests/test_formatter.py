@@ -12,6 +12,7 @@ class TestFormatter(unittest.TestCase):
             WARC-Test: test warc value
             WARC-Record-ID: record-id
             WARC-Payload-Digest: fingerprint
+            Content-Type: application/http; msgtype=response
             \n\n
             HTTP/1.1 200 OK
             Content-Type: text/html
@@ -105,6 +106,11 @@ class TestFormatter(unittest.TestCase):
         """ document should have header """
         document = self.formatter.get_document(self.good_record)
         assert document.get('Header-Test') == 'test header value'
+
+    def test_take_html_content_type_header(self):
+        document = self.formatter.get_document(self.good_record)
+        expected = 'text/html'
+        assert document.get('Content-Type') == expected
 
     def test_warc_id(self):
         """ document should have warc id """

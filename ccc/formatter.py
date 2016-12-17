@@ -54,8 +54,8 @@ class Formatter(object):
             elements = header_element.split(":")
             head, tail = elements[0], elements[1:]
             header_dict[head.strip()] = ':'.join(tail).strip()
-        self.document.update(header_dict)
         self.document.update(warc_dict)
+        self.document.update(header_dict)
         self.document['url'] = warc_dict['WARC-Target-URI']
         md5 = hashlib.md5()
         md5.update(self.document['text'].encode('ascii', 'ignore'))
