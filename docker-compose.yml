@@ -6,15 +6,7 @@ services:
     command: gunicorn -b 0.0.0.0 server:API
     volumes:
       - "./:/code/"
-    environment:
-      - QUEUE_NAME=queue_name
-      - QUEUE_ERROR_NAME=queue_error_name
-      - QUEUE_TYPE=redis
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - AWS_ACCESS_KEY_ID=<your key>
-      - AWS_SECRET_ACCESS_KEY=<your key>
-      - AWS_DEFAULT_REGION=us-east-1
+    env_file: environment_variables
     ports:
       - 8000:8000
     depends_on:
@@ -29,16 +21,7 @@ services:
     command: python worker.py
     volumes:
       - "./:/code/"
-    environment:
-      - QUEUE_NAME=queue_name
-      - QUEUE_ERROR_NAME=queue_error_name
-      - QUEUE_TYPE=redis
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SOLR_URL=http://solr:8983
-      - AWS_ACCESS_KEY_ID=<your key>
-      - AWS_SECRET_ACCESS_KEY=<your key>
-      - AWS_DEFAULT_REGION=us-east-1
+    env_file: environment_variables
     depends_on:
       - solr
       - redis

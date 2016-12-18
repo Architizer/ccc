@@ -1,0 +1,9 @@
+QUEUE_NAME=queue_name
+QUEUE_ERROR_NAME=queue_error_name
+QUEUE_TYPE=redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+SOLR_URL=http://solr:8983
+AWS_ACCESS_KEY_ID=<your key>
+AWS_SECRET_ACCESS_KEY=<your key>
+AWS_DEFAULT_REGION=us-east-1
