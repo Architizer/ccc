@@ -6,8 +6,10 @@ Utility script to test and troubleshoot ccc
 
 import argparse
 import os
+import json
 import requests
-from ccc import index_in_solr, lookup
+from ccc import index_in_solr, lookup, get
+from ccc.formatter import Formatter
 
 PARSER = argparse.ArgumentParser(prog='ccc')
 PARSER.add_argument('command', help="""
@@ -15,6 +17,7 @@ PARSER.add_argument('command', help="""
 """)
 PARSER.add_argument('extras', nargs='+', help='ccc help')
 PARSER.print_help()
+INDEX = os.environ.get('INDEX', 'CC-MAIN-2016-40')
 
 
 if __name__ == "__main__":
@@ -37,11 +40,35 @@ if __name__ == "__main__":
                 with open(filenamepath, 'w') as f:
                     f.write(r.text)
 
+    elif ARGS.command == 'print-documentfields':
+        domain = ARGS.extras[0]
+
+        for record in lookup(INDEX, domain):
+            page = get(json.loads(''.join(record.split(' ')[2:])))
+            formatter = Formatter(domain)
+            document = formatter.get_document(page)
+            import hashlib
+            d = hashlib.md5()
+            d.update(document['text'].encode('utf-8'))
+            print(d.hexdigest())
+            print(document['WARC-Payload-Digest'])
+            print(document['WARC-Target-URI'])
+            #print(','.join(document.keys()))
+
+    elif ARGS.command == 'inspect-documentfields':
+        domain = ARGS.extras[0]
+        fields= ARGS.extras[1:]
+
+        for record in lookup(INDEX, domain):
+            page = get(json.loads(''.join(record.split(' ')[2:])))
+            formatter = Formatter(domain)
+            document = formatter.get_document(page)
+            print(','.join([document.get(field, 'N/A') for field in fields]))
+
     elif ARGS.command == 'index-domain':
         for domain in ARGS.extras:
             index_in_solr(domain)
 
     elif ARGS.command == 'page-count':
-        INDEX = os.environ.get('INDEX', 'CC-MAIN-2016-40')
         for domain in ARGS.extras:
             print('{}, {}\r\n'.format(domain, len([page for page in lookup(INDEX, domain)])))
