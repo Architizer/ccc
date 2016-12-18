@@ -11,6 +11,8 @@ import boto3
 import requests
 from bs4 import BeautifulSoup
 from ccc.formatter import Formatter
+from ccc.queue_wrapper import QueueWrapper
+from redis import Redis
 
 from pywb.cdx.cdxserver import CDXServer
 from pywb.utils.wbexception import NotFoundException
@@ -20,7 +22,15 @@ HANDLER = logging.StreamHandler(sys.stdout)
 HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 LOGGER.addHandler(HANDLER)
 LOGGER.setLevel(logging.INFO)
-SQS = boto3.resource('sqs')
+QUEUE_NAME = os.environ.get('QUEUE_NAME')
+QUEUE_ERROR_NAME = os.environ.get('QUEUE_ERROR_NAME')
+QUEUE_TYPE = os.environ.get('QUEUE_TYPE')
+BACKEND = None
+if QUEUE_TYPE == 'redis':
+    BACKEND = Redis(host=os.environ.get('REDIS_HOST'), port=os.environ.get('REDIS_PORT'))
+elif QUEUE_TYPE == 'sqs':
+    BACKEND = boto3.resource('sqs')
+QUEUE = QueueWrapper(QUEUE_NAME, QUEUE_TYPE, BACKEND)
 
 def log(msg):
     """ log abstract for debug """
@@ -78,11 +88,13 @@ def _post_to_solr(batch, commit=False):
 
 def index_in_solr(domain):
     """ indexes document in solr """
+    log_info('indexing: {}'.format(domain))
     index = os.environ.get('INDEX', 'CC-MAIN-2016-40')
     batch_size = 20
     batch = []
     counter = 0
     for record in lookup(index, domain):
+        log_info('processing record: {}'.format(record))
         formatter = Formatter(domain)
         counter += 1
         record_json = json.loads(''.join(record.split(' ')[2:]))
@@ -133,22 +145,20 @@ def index_in_solr(domain):
 
 def enqueue_error(error_msg):
     """ enqueues error to process later """
-    error_queue = SQS.get_queue_by_name(QueueName='search-ccc-errors-us-east-1-dev')
-    response = error_queue.send_message(MessageBody=error_msg)
+    error_queue = QueueWrapper(QUEUE_ERROR_NAME, QUEUE_TYPE, BACKEND)
+    response = error_queue.send_message(error_msg)
     return response.get('MessageId')
 
 def add_to_pending(domain):
     """ enqueues job """
     log_info('enqueing {}'.format(domain))
-    queue = SQS.get_queue_by_name(QueueName='search-us-east-1-dev')
-    response = queue.send_message(MessageBody=domain)
+    response = QUEUE.send_message(domain)
     return response.get('MessageId')
 
 def dequeued():
     """ dequeues job """
-    queue = SQS.get_queue_by_name(QueueName='search-us-east-1-dev')
     while True:
-        messages = queue.receive_messages(WaitTimeSeconds=5)
+        messages = QUEUE.receive_messages(WaitTimeSeconds=5)
         for message in messages:
             domain = message.body
             index_in_solr(domain)
